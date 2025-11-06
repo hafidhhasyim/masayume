@@ -44,7 +44,8 @@ export async function POST(request: NextRequest) {
     const filename = `${timestamp}-${randomString}.${extension}`;
 
     // If Vercel Blob token provided, store to Vercel Blob (production safe)
-    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    // Support common alias env var name as fallback
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_RW_TOKEN;
     if (blobToken) {
       const blob = await put(`uploads/${filename}`, buffer, {
         access: 'public',
