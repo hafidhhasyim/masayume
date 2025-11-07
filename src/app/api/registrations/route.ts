@@ -19,8 +19,24 @@ export async function GET(request: NextRequest) {
       }
 
       const registration = await db
-        .select()
+        .select({
+          id: registrations.id,
+          registrationNumber: registrations.registrationNumber,
+          fullName: registrations.fullName,
+          email: registrations.email,
+          phone: registrations.phone,
+          dateOfBirth: registrations.dateOfBirth,
+          education: registrations.education,
+          address: registrations.address,
+          programId: registrations.programId,
+          programTitle: programs.title,
+          status: registrations.status,
+          notes: registrations.notes,
+          createdAt: registrations.createdAt,
+          updatedAt: registrations.updatedAt,
+        })
         .from(registrations)
+        .leftJoin(programs, eq(registrations.programId, programs.id))
         .where(eq(registrations.id, parseInt(id)))
         .limit(1);
 
@@ -37,8 +53,24 @@ export async function GET(request: NextRequest) {
     // Single registration by registration number
     if (registrationNumber) {
       const registration = await db
-        .select()
+        .select({
+          id: registrations.id,
+          registrationNumber: registrations.registrationNumber,
+          fullName: registrations.fullName,
+          email: registrations.email,
+          phone: registrations.phone,
+          dateOfBirth: registrations.dateOfBirth,
+          education: registrations.education,
+          address: registrations.address,
+          programId: registrations.programId,
+          programTitle: programs.title,
+          status: registrations.status,
+          notes: registrations.notes,
+          createdAt: registrations.createdAt,
+          updatedAt: registrations.updatedAt,
+        })
         .from(registrations)
+        .leftJoin(programs, eq(registrations.programId, programs.id))
         .where(eq(registrations.registrationNumber, registrationNumber))
         .limit(1);
 
@@ -59,7 +91,25 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const programId = searchParams.get('program_id');
 
-    let query = db.select().from(registrations);
+    let query = db
+      .select({
+        id: registrations.id,
+        registrationNumber: registrations.registrationNumber,
+        fullName: registrations.fullName,
+        email: registrations.email,
+        phone: registrations.phone,
+        dateOfBirth: registrations.dateOfBirth,
+        education: registrations.education,
+        address: registrations.address,
+        programId: registrations.programId,
+        programTitle: programs.title,
+        status: registrations.status,
+        notes: registrations.notes,
+        createdAt: registrations.createdAt,
+        updatedAt: registrations.updatedAt,
+      })
+      .from(registrations)
+      .leftJoin(programs, eq(registrations.programId, programs.id));
 
     const conditions = [];
 
@@ -92,7 +142,7 @@ export async function GET(request: NextRequest) {
 
     // Apply conditions
     if (conditions.length > 0) {
-      query = query.where(and(...conditions));
+      query = query.where(and(...conditions)) as any;
     }
 
     const results = await query
