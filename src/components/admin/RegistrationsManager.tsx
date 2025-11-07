@@ -19,8 +19,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Eye, Search, RefreshCw, Trash2 } from "lucide-react"
+import { Eye, Search, RefreshCw, Trash2, FileSpreadsheet } from "lucide-react"
 import { toast } from "sonner"
+import * as XLSX from "xlsx"
 
 interface Registration {
   id: number
@@ -28,8 +29,13 @@ interface Registration {
   fullName: string
   email: string
   phone: string
+  dateOfBirth: string
+  education: string
+  address: string
   programId: number
+  programTitle: string | null
   status: string
+  notes: string | null
   createdAt: string
 }
 
@@ -44,6 +50,7 @@ export default function RegistrationsManager() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [registrationToDelete, setRegistrationToDelete] = useState<Registration | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     fetchRegistrations()
@@ -57,7 +64,8 @@ export default function RegistrationsManager() {
         (reg) =>
           reg.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
           reg.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          reg.registrationNumber.toLowerCase().includes(searchQuery.toLowerCase())
+          reg.registrationNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (reg.programTitle && reg.programTitle.toLowerCase().includes(searchQuery.toLowerCase()))
       )
     }
 
@@ -79,6 +87,68 @@ export default function RegistrationsManager() {
       toast.error("Gagal memuat data pendaftaran")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleExportExcel = async () => {
+    setExporting(true)
+    try {
+      // Fetch all registrations for export
+      const response = await fetch("/api/registrations?limit=1000")
+      const data = await response.json()
+
+      // Prepare data for Excel
+      const excelData = data.map((reg: Registration, index: number) => ({
+        "No": index + 1,
+        "No. Pendaftaran": reg.registrationNumber,
+        "Nama Lengkap": reg.fullName,
+        "Email": reg.email,
+        "Telepon": reg.phone,
+        "Tanggal Lahir": reg.dateOfBirth,
+        "Pendidikan": reg.education,
+        "Alamat": reg.address,
+        "Program": reg.programTitle || "-",
+        "Status": reg.status,
+        "Catatan": reg.notes || "-",
+        "Tanggal Daftar": new Date(reg.createdAt).toLocaleDateString("id-ID"),
+      }))
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new()
+      const ws = XLSX.utils.json_to_sheet(excelData)
+
+      // Set column widths
+      ws["!cols"] = [
+        { wch: 5 },  // No
+        { wch: 18 }, // No. Pendaftaran
+        { wch: 25 }, // Nama Lengkap
+        { wch: 30 }, // Email
+        { wch: 15 }, // Telepon
+        { wch: 15 }, // Tanggal Lahir
+        { wch: 20 }, // Pendidikan
+        { wch: 40 }, // Alamat
+        { wch: 30 }, // Program
+        { wch: 12 }, // Status
+        { wch: 30 }, // Catatan
+        { wch: 15 }, // Tanggal Daftar
+      ]
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Pendaftaran")
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().split('T')[0]
+      const filename = `laporan-pendaftaran-masayume-${timestamp}.xlsx`
+
+      // Export file
+      XLSX.writeFile(wb, filename)
+
+      toast.success("Data berhasil diexport ke Excel")
+    } catch (error) {
+      console.error("Error exporting to Excel:", error)
+      toast.error("Gagal export data ke Excel")
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -156,10 +226,21 @@ export default function RegistrationsManager() {
               <CardTitle>Kelola Pendaftaran</CardTitle>
               <CardDescription>Review dan update status pendaftaran peserta</CardDescription>
             </div>
-            <Button onClick={fetchRegistrations} variant="outline" size="sm">
-              <RefreshCw className="mr-2" size={16} />
-              Refresh
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleExportExcel} 
+                variant="outline" 
+                size="sm"
+                disabled={exporting || registrations.length === 0}
+              >
+                <FileSpreadsheet className="mr-2" size={16} />
+                {exporting ? "Exporting..." : "Export Excel"}
+              </Button>
+              <Button onClick={fetchRegistrations} variant="outline" size="sm">
+                <RefreshCw className="mr-2" size={16} />
+                Refresh
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -167,7 +248,7 @@ export default function RegistrationsManager() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <Input
-                placeholder="Cari nama, email, atau nomor pendaftaran..."
+                placeholder="Cari nama, email, program, atau nomor pendaftaran..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -197,6 +278,7 @@ export default function RegistrationsManager() {
                     <TableHead>No. Pendaftaran</TableHead>
                     <TableHead>Nama</TableHead>
                     <TableHead>Email</TableHead>
+                    <TableHead>Program</TableHead>
                     <TableHead>Tanggal</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
@@ -205,7 +287,7 @@ export default function RegistrationsManager() {
                 <TableBody>
                   {filteredRegistrations.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground">
                         Tidak ada data
                       </TableCell>
                     </TableRow>
@@ -215,6 +297,11 @@ export default function RegistrationsManager() {
                         <TableCell className="font-medium">{reg.registrationNumber}</TableCell>
                         <TableCell>{reg.fullName}</TableCell>
                         <TableCell>{reg.email}</TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {reg.programTitle || "-"}
+                          </span>
+                        </TableCell>
                         <TableCell>{new Date(reg.createdAt).toLocaleDateString("id-ID")}</TableCell>
                         <TableCell>
                           <Badge className={getStatusBadge(reg.status)}>{reg.status}</Badge>
@@ -270,6 +357,28 @@ export default function RegistrationsManager() {
                   <Label>Telepon</Label>
                   <p className="text-sm">{selectedRegistration.phone}</p>
                 </div>
+                <div>
+                  <Label>Tanggal Lahir</Label>
+                  <p className="text-sm">{selectedRegistration.dateOfBirth}</p>
+                </div>
+                <div>
+                  <Label>Pendidikan</Label>
+                  <p className="text-sm">{selectedRegistration.education}</p>
+                </div>
+                <div>
+                  <Label>Program</Label>
+                  <p className="text-sm font-medium">{selectedRegistration.programTitle || "-"}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Alamat</Label>
+                  <p className="text-sm">{selectedRegistration.address}</p>
+                </div>
+                {selectedRegistration.notes && (
+                  <div className="md:col-span-2">
+                    <Label>Catatan</Label>
+                    <p className="text-sm">{selectedRegistration.notes}</p>
+                  </div>
+                )}
                 <div>
                   <Label>Status Saat Ini</Label>
                   <Badge className={getStatusBadge(selectedRegistration.status)}>
