@@ -21,7 +21,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Eye, Search, RefreshCw, Trash2, FileSpreadsheet } from "lucide-react"
 import { toast } from "sonner"
-// Import XLSX dynamically to reduce bundle size and avoid build-time issues
+
 
 interface Registration {
   id: number
