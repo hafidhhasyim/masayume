@@ -4,17 +4,17 @@
 import { useEffect, useState, useRef } from "react";
 
 export const CHANNEL = "ORCHIDS_HOVER_v1" as const;
-const VISUAL_EDIT_MODE_KEY = "orchids_visual_edit_mode" as const;
-const FOCUSED_ELEMENT_KEY = "orchids_focused_element" as const;
+const VISUAL_EDIT_MODE_KEY = "developer_visual_edit_mode" as const;
+const FOCUSED_ELEMENT_KEY = "developer_focused_element" as const;
 
 // Deduplicate helper for high-frequency traffic (HIT / FOCUS_MOVED / SCROLL)
 // -----------------------------------------------------------------------------
-let _orchidsLastMsg = "";
+let _developerLastMsg = "";
 const postMessageDedup = (data: any) => {
   try {
     const key = JSON.stringify(data);
-    if (key === _orchidsLastMsg) return; // identical – drop
-    _orchidsLastMsg = key;
+    if (key === _developerLastMsg) return; // identical – drop
+    _developerLastMsg = key;
   } catch {
     // if stringify fails, fall through
   }
@@ -210,12 +210,12 @@ const extractDirectTextContent = (element: HTMLElement): string => {
   return text;
 };
 
-// Helper to parse data-orchids-id to extract file path, line, and column
-const parseOrchidsId = (
-  orchidsId: string
+// Helper to parse data-developer-id to extract file path, line, and column
+const parseDeveloperId = (
+  developerId: string
 ): { filePath: string; line: number; column: number } | null => {
   // Format: "filepath:line:column"
-  const parts = orchidsId.split(":");
+  const parts = developerId.split(":");
   if (parts.length < 3) return null;
 
   // The file path might contain colons, so we need to handle that
@@ -485,7 +485,7 @@ export default function HoverReceiver() {
             try {
               const { id } = JSON.parse(focusedData);
               const element = document.querySelector(
-                `[data-orchids-id="${id}"]`
+                `[data-developer-id="${id}"]`
               ) as HTMLElement;
 
               if (element) {
@@ -554,7 +554,7 @@ export default function HoverReceiver() {
           cursor: default !important;
         }
         /* Ensure protected elements can't be selected */
-        [data-orchids-protected="true"] {
+        [data-developer-protected="true"] {
           user-select: none !important;
           -webkit-user-select: none !important;
           -moz-user-select: none !important;
@@ -584,7 +584,7 @@ export default function HoverReceiver() {
       const childEl = child as HTMLElement;
       childEl.contentEditable = "false";
       // Add a data attribute to mark protected elements
-      childEl.setAttribute("data-orchids-protected", "true");
+      childEl.setAttribute("data-developer-protected", "true");
       // Only prevent text selection within the child elements when parent is being edited
       // But still allow pointer events for hovering and clicking
       childEl.style.userSelect = "none";
@@ -596,12 +596,12 @@ export default function HoverReceiver() {
   // Helper to restore child elements after editing
   const restoreChildElements = (element: HTMLElement) => {
     const protectedElements = element.querySelectorAll(
-      '[data-orchids-protected="true"]'
+      '[data-developer-protected="true"]'
     );
     protectedElements.forEach((child) => {
       const childEl = child as HTMLElement;
       childEl.removeAttribute("contenteditable");
-      childEl.removeAttribute("data-orchids-protected");
+      childEl.removeAttribute("data-developer-protected");
       // Restore original styles
       childEl.style.userSelect = "";
       childEl.style.webkitUserSelect = "";
@@ -616,8 +616,8 @@ export default function HoverReceiver() {
       return;
     }
 
-    // Get the orchids ID from the element to ensure we're working with the right one
-    const orchidsId = element.getAttribute("data-orchids-id");
+    // Get the element ID from the element to ensure we're working with the right one
+    const orchidsId = element.getAttribute("data-developer-id");
     if (!orchidsId) return;
 
     // For elements with children, only extract direct text content
@@ -637,7 +637,7 @@ export default function HoverReceiver() {
     }
 
     if (newText !== oldText) {
-      const parsed = parseOrchidsId(orchidsId);
+      const parsed = parseDeveloperId(orchidsId);
       if (!parsed) return;
 
       // Send text change message to parent
@@ -664,15 +664,15 @@ export default function HoverReceiver() {
     element: HTMLElement,
     styles: Record<string, string>
   ) => {
-    const orchidsId = element.getAttribute("data-orchids-id");
+    const orchidsId = element.getAttribute("data-developer-id");
     if (!orchidsId) return;
 
-    const parsed = parseOrchidsId(orchidsId);
+    const parsed = parseDeveloperId(orchidsId);
     if (!parsed) return;
 
-    // Find ALL elements with the same orchids ID
+    // Find ALL elements with the same element ID
     const allMatchingElements = document.querySelectorAll(
-      `[data-orchids-id="${orchidsId}"]`
+      `[data-developer-id="${orchidsId}"]`
     ) as NodeListOf<HTMLElement>;
 
     // Apply styles to ALL matching elements for visual feedback
@@ -733,10 +733,10 @@ export default function HoverReceiver() {
   const handleStyleBlur = (element: HTMLElement) => {
     if (!hasStyleChangesRef.current) return;
 
-    const orchidsId = element.getAttribute("data-orchids-id");
+    const orchidsId = element.getAttribute("data-developer-id");
     if (!orchidsId) return;
 
-    const parsed = parseOrchidsId(orchidsId);
+    const parsed = parseDeveloperId(orchidsId);
     if (!parsed) return;
 
     const appliedStyles = appliedStylesRef.current.get(orchidsId);
@@ -769,10 +769,10 @@ export default function HoverReceiver() {
     const imgElement = focusedImageElementRef.current;
     if (!imgElement) return;
 
-    const orchidsId = imgElement.getAttribute("data-orchids-id");
+    const orchidsId = imgElement.getAttribute("data-developer-id");
     if (!orchidsId) return;
 
-    const parsed = parseOrchidsId(orchidsId);
+    const parsed = parseDeveloperId(orchidsId);
     if (!parsed) return;
 
     const newSrc = normalizeImageSrc(imgElement.src);
@@ -803,9 +803,9 @@ export default function HoverReceiver() {
       if (e.data?.type === "ORCHIDS_STYLE_UPDATE") {
         const { elementId, styles } = e.data;
 
-        // Find ALL elements with the same orchids ID
+        // Find ALL elements with the same developer ID
         const allMatchingElements = document.querySelectorAll(
-          `[data-orchids-id="${elementId}"]`
+          `[data-developer-id="${elementId}"]`
         ) as NodeListOf<HTMLElement>;
 
         if (allMatchingElements.length > 0) {
@@ -895,7 +895,7 @@ export default function HoverReceiver() {
         const { elementId, src, oldSrc } = e.data;
         let element: HTMLImageElement | null = null;
         const candidates = document.querySelectorAll(
-          `[data-orchids-id="${elementId}"]`
+          `[data-developer-id="${elementId}"]`
         );
         candidates.forEach((el) => {
           if (el.tagName.toLowerCase() === "img") {
@@ -935,7 +935,7 @@ export default function HoverReceiver() {
       } else if (e.data?.type === "RESIZE_ELEMENT") {
         const { elementId, width, height } = e.data;
         const element = document.querySelector(
-          `[data-orchids-id="${elementId}"]`
+          `[data-developer-id="${elementId}"]`
         ) as HTMLElement;
 
         if (element && focusedElementRef.current === element) {
@@ -1155,10 +1155,10 @@ export default function HoverReceiver() {
           className: element.getAttribute("class") || "",
         };
 
-        // Extract file info from data-orchids-id
-        const orchidsId = element.getAttribute("data-orchids-id");
+        // Extract file info from data-developer-id
+        const orchidsId = element.getAttribute("data-developer-id");
         if (orchidsId) {
-          const parsed = parseOrchidsId(orchidsId);
+          const parsed = parseDeveloperId(orchidsId);
           if (parsed) {
             msg.filePath = parsed.filePath;
             msg.line = parsed.line;
@@ -1347,7 +1347,7 @@ export default function HoverReceiver() {
       const hit =
         document
           .elementFromPoint(e.clientX, e.clientY)
-          ?.closest<HTMLElement>("[data-orchids-id]") ?? null;
+          ?.closest<HTMLElement>("[data-developer-id]") ?? null;
 
       if (hit !== lastHitElementRef.current) {
         lastHitElementRef.current = hit;
@@ -1372,7 +1372,7 @@ export default function HoverReceiver() {
         }
 
         // Don't show hover box if this is the focused element
-        const hitId = hit.getAttribute("data-orchids-id");
+        const hitId = hit.getAttribute("data-developer-id");
 
         // Check if we're already showing boxes for this ID
         if (hitId === lastHitIdRef.current) {
@@ -1382,19 +1382,19 @@ export default function HoverReceiver() {
         lastHitIdRef.current = hitId;
 
         const tagName =
-          hit.getAttribute("data-orchids-name") || hit.tagName.toLowerCase();
+          hit.getAttribute("data-developer-name") || hit.tagName.toLowerCase();
 
         // Update hover boxes immediately for instant feedback
-        // Find ALL elements with the same orchids ID
+        // Find ALL elements with the same developer ID
         const allMatchingElements = document.querySelectorAll(
-          `[data-orchids-id="${hitId}"]`
+          `[data-developer-id="${hitId}"]`
         ) as NodeListOf<HTMLElement>;
 
         // Create hover boxes for all matching elements except the focused one
         const boxes: Box[] = [];
         allMatchingElements.forEach((element) => {
           // Skip if this element is the focused one
-          const elementId = element.getAttribute("data-orchids-id");
+          const elementId = element.getAttribute("data-developer-id");
           if (elementId === focusedElementId) {
             return;
           }
@@ -1464,7 +1464,7 @@ export default function HoverReceiver() {
       if (!isVisualEditModeRef.current) return;
 
       const hit = (e.target as HTMLElement)?.closest<HTMLElement>(
-        "[data-orchids-id]"
+        "[data-developer-id]"
       );
 
       if (hit && isTextEditable(hit)) {
@@ -1504,13 +1504,13 @@ export default function HoverReceiver() {
       lastClickTimeRef.current = now;
 
       const target = e.target as HTMLElement;
-      const hit = target.closest<HTMLElement>("[data-orchids-id]");
+      const hit = target.closest<HTMLElement>("[data-developer-id]");
 
       if (hit) {
         const tagName =
-          hit.getAttribute("data-orchids-name") || hit.tagName.toLowerCase();
+          hit.getAttribute("data-developer-name") || hit.tagName.toLowerCase();
 
-        const hitId = hit.getAttribute("data-orchids-id");
+        const hitId = hit.getAttribute("data-developer-id");
         const isEditable = isTextEditable(hit);
 
         // Always prevent default for non-text interactions
@@ -1545,9 +1545,9 @@ export default function HoverReceiver() {
           );
         }
 
-        // Find ALL other elements with the same orchids ID and show hover boxes
+        // Find ALL other elements with the same developer ID and show hover boxes
         const allMatchingElements = document.querySelectorAll(
-          `[data-orchids-id="${hitId}"]`
+          `[data-developer-id="${hitId}"]`
         ) as NodeListOf<HTMLElement>;
 
         // Create hover boxes for all matching elements except the focused one
@@ -1737,7 +1737,7 @@ export default function HoverReceiver() {
           }
         }, 0);
       } else {
-        // Clicked on empty space or element without data-orchids-id
+        // Clicked on empty space or element without data-developer-id
         // Clear focus and hover boxes
         if (focusedElementRef.current) {
           // Flush any pending changes
@@ -1798,7 +1798,7 @@ export default function HoverReceiver() {
         }
 
         const element = document.querySelector(
-          `[data-orchids-id="${elementId}"]`
+          `[data-developer-id="${elementId}"]`
         ) as HTMLElement | null;
         if (!element) return;
 
@@ -1876,9 +1876,9 @@ export default function HoverReceiver() {
 
       // Handle clear inline styles message
       if (e.data.msg === "CLEAR_INLINE_STYLES" && "elementId" in e.data) {
-        // Find ALL elements with the same orchids ID
+        // Find ALL elements with the same developer ID
         const allMatchingElements = document.querySelectorAll(
-          `[data-orchids-id="${e.data.elementId}"]`
+          `[data-developer-id="${e.data.elementId}"]`
         ) as NodeListOf<HTMLElement>;
 
         allMatchingElements.forEach((element) => {
@@ -1922,9 +1922,9 @@ export default function HoverReceiver() {
           return;
         }
 
-        // Find ALL elements with the same orchids ID
+        // Find ALL elements with the same developer ID
         const allMatchingElements = document.querySelectorAll(
-          `[data-orchids-id="${elementId}"]`
+          `[data-developer-id="${elementId}"]`
         ) as NodeListOf<HTMLElement>;
 
         if (allMatchingElements.length > 0) {
@@ -1942,7 +1942,7 @@ export default function HoverReceiver() {
 
             if (!tagName) {
               tagName =
-                element.getAttribute("data-orchids-name") ||
+                element.getAttribute("data-developer-name") ||
                 element.tagName.toLowerCase();
             }
           });

@@ -165,17 +165,17 @@ export default function AdminDashboard() {
 
   const menuItems = [
     { id: 'overview' as TabType, label: 'Overview', icon: BarChart },
-    { id: 'settings' as TabType, label: 'Pengaturan', icon: Settings },
-    { id: 'backup' as TabType, label: 'Backup & Restore', icon: Database },
-    { id: 'sliders' as TabType, label: 'Slider', icon: Monitor },
-    { id: 'profile' as TabType, label: 'Profil', icon: BookOpen },
-    { id: 'organization' as TabType, label: 'Organisasi', icon: Network },
-    { id: 'programs' as TabType, label: 'Program', icon: Briefcase },
-    { id: 'news' as TabType, label: 'Berita', icon: FileText },
-    { id: 'graduates' as TabType, label: 'Lulusan', icon: GraduationCap },
-    { id: 'gallery' as TabType, label: 'Galeri', icon: ImageIcon },
     { id: 'registrations' as TabType, label: 'Pendaftaran', icon: Users },
     { id: 'messages' as TabType, label: 'Pesan', icon: Mail },
+    { id: 'programs' as TabType, label: 'Program', icon: Briefcase },
+    { id: 'news' as TabType, label: 'Berita', icon: FileText },
+    { id: 'gallery' as TabType, label: 'Galeri', icon: ImageIcon },
+    { id: 'graduates' as TabType, label: 'Lulusan', icon: GraduationCap },
+    { id: 'profile' as TabType, label: 'Profil', icon: BookOpen },
+    { id: 'organization' as TabType, label: 'Organisasi', icon: Network },
+    { id: 'sliders' as TabType, label: 'Slider', icon: Monitor },
+    { id: 'settings' as TabType, label: 'Pengaturan', icon: Settings },
+    { id: 'backup' as TabType, label: 'Backup & Restore', icon: Database },
   ]
 
   if (!isAuthenticated) {
